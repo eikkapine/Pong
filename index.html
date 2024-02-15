@@ -76,6 +76,7 @@
 
         let ballSpeedX = 5;
         let ballSpeedY = 5;
+        let ballAcceleration = 0.02;
         let playerSpeed = 10;
         let player1Score = 0;
         let player2Score = 0;
@@ -100,21 +101,22 @@
             keyState[event.key] = false;
         });
 
-         function updatePlayerPaddle() {
-        if (keyState["ArrowUp"]) {
-            movePlayerPaddle(player2, -playerSpeed); // Switch player1 to player2
-        } else if (keyState["ArrowDown"]) {
-            movePlayerPaddle(player2, playerSpeed); // Switch player1 to player2
+        function updatePlayerPaddle() {
+            if (keyState["ArrowUp"]) {
+                movePlayerPaddle(player2, -playerSpeed);
+            } else if (keyState["ArrowDown"]) {
+                movePlayerPaddle(player2, playerSpeed);
+            }
+
+            if (keyState["w"]) {
+                movePlayerPaddle(player1, -playerSpeed);
+            } else if (keyState["s"]) {
+                movePlayerPaddle(player1, playerSpeed);
+            }
+
+            requestAnimationFrame(updatePlayerPaddle);
         }
 
-        if (keyState["w"]) {
-            movePlayerPaddle(player1, -playerSpeed); // Switch player2 to player1
-        } else if (keyState["s"]) {
-            movePlayerPaddle(player1, playerSpeed); // Switch player2 to player1
-        }
-
-        requestAnimationFrame(updatePlayerPaddle);
-    }
         function movePlayerPaddle(player, speed) {
             const currentPlayerTop = parseFloat(player.style.top);
             player.style.top = `${Math.max(0, Math.min(gameContainer.clientHeight - player.clientHeight, currentPlayerTop + speed))}px`;
@@ -132,17 +134,9 @@
 
             // Ball collision with paddles
             if (collision(player1, ball)) {
-                const ballCenterY = parseFloat(ball.style.top) + ball.clientHeight / 2;
-                const paddleCenterY = parseFloat(player1.style.top) + player1.clientHeight / 2;
-                const deltaY = ballCenterY - paddleCenterY;
-                ballSpeedX *= -1;
-                ballSpeedY = deltaY * 0.2; // Adjust the bounce angle based on paddle position
+                handlePaddleCollision(player1);
             } else if (collision(player2, ball)) {
-                const ballCenterY = parseFloat(ball.style.top) + ball.clientHeight / 2;
-                const paddleCenterY = parseFloat(player2.style.top) + player2.clientHeight / 2;
-                const deltaY = ballCenterY - paddleCenterY;
-                ballSpeedX *= -1;
-                ballSpeedY = deltaY * 0.2; // Adjust the bounce angle based on paddle position
+                handlePaddleCollision(player2);
             }
 
             // Ball out of bounds
@@ -158,7 +152,20 @@
                 resetBall();
             }
 
+            // Accelerate the ball over time
+            ballSpeedX += ballAcceleration;
+            ballSpeedY += ballAcceleration;
+
             requestAnimationFrame(updateGame);
+        }
+
+        function handlePaddleCollision(paddle) {
+            const ballCenterY = parseFloat(ball.style.top) + ball.clientHeight / 2;
+            const paddleCenterY = parseFloat(paddle.style.top) + paddle.clientHeight / 2;
+            const deltaY = ballCenterY - paddleCenterY;
+
+            ballSpeedX *= -1;
+            ballSpeedY = deltaY * 0.3; // Adjust the bounce angle and speed based on paddle position
         }
 
         function updateScores() {
@@ -169,7 +176,8 @@
         function resetBall() {
             ball.style.left = `${(gameContainer.clientWidth - ball.clientWidth) / 2}px`;
             ball.style.top = `${(gameContainer.clientHeight - ball.clientHeight) / 2}px`;
-            ballSpeedX = -ballSpeedX;
+            ballSpeedX = Math.random() > 0.5 ? 5 : -5; // Randomly set initial X direction
+            ballSpeedY = Math.random() > 0.5 ? 5 : -5; // Randomly set initial Y direction
         }
 
         function collision(paddle, ball) {
