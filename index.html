@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ping Pong Game with Score Counter</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+
+        .game-container {
+            position: relative;
+            width: 600px;
+            height: 400px;
+            border: 2px solid #000;
+        }
+
+        .paddle {
+            position: absolute;
+            width: 10px;
+            height: 100px;
+            background-color: #000;
+        }
+
+        #player1 {
+            left: 10px;
+            background-color: blue;
+        }
+
+        #player2 {
+            right: 10px;
+            background-color: red;
+        }
+
+        .ball {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: black;
+            border-radius: 50%;
+        }
+
+        .score-container {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="paddle" id="player1"></div>
+        <div class="paddle" id="player2"></div>
+        <div class="ball" id="ball"></div>
+    </div>
+    <div class="score-container">
+        <div class="score" id="player1-score">Player 1: 0</div>
+        <div class="score" id="player2-score">Player 2: 0</div>
+    </div>
+    <script>
+        const player1 = document.getElementById("player1");
+        const player2 = document.getElementById("player2");
+        const ball = document.getElementById("ball");
+        const gameContainer = document.querySelector(".game-container");
+        const player1ScoreDisplay = document.getElementById("player1-score");
+        const player2ScoreDisplay = document.getElementById("player2-score");
+
+        let ballSpeedX = 5;
+        let ballSpeedY = 5;
+        let playerSpeed = 10;
+        let player1Score = 0;
+        let player2Score = 0;
+
+        // Set initial position of the ball and paddles
+        ball.style.left = `${(gameContainer.clientWidth - ball.clientWidth) / 2}px`;
+        ball.style.top = `${(gameContainer.clientHeight - ball.clientHeight) / 2}px`;
+        player1.style.top = `${(gameContainer.clientHeight - player1.clientHeight) / 2}px`;
+        player2.style.top = `${(gameContainer.clientHeight - player2.clientHeight) / 2}px`;
+        player2.style.right = "10px"; // Position player2 on the right side
+
+        // Control player's paddle movement using keyboard
+        const keyState = {};
+        document.addEventListener("keydown", (event) => {
+            keyState[event.key] = true;
+            if (event.key === "ArrowUp" || event.key === "ArrowDown" || event.key === "w" || event.key === "s") {
+                event.preventDefault(); // Prevent page scrolling when using arrow keys or "w" and "s" keys
+            }
+        });
+
+        document.addEventListener("keyup", (event) => {
+            keyState[event.key] = false;
+        });
+
+         function updatePlayerPaddle() {
+        if (keyState["ArrowUp"]) {
+            movePlayerPaddle(player2, -playerSpeed); // Switch player1 to player2
+        } else if (keyState["ArrowDown"]) {
+            movePlayerPaddle(player2, playerSpeed); // Switch player1 to player2
+        }
+
+        if (keyState["w"]) {
+            movePlayerPaddle(player1, -playerSpeed); // Switch player2 to player1
+        } else if (keyState["s"]) {
+            movePlayerPaddle(player1, playerSpeed); // Switch player2 to player1
+        }
+
+        requestAnimationFrame(updatePlayerPaddle);
+    }
+        function movePlayerPaddle(player, speed) {
+            const currentPlayerTop = parseFloat(player.style.top);
+            player.style.top = `${Math.max(0, Math.min(gameContainer.clientHeight - player.clientHeight, currentPlayerTop + speed))}px`;
+        }
+
+        function updateGame() {
+            // Move ball
+            ball.style.left = `${parseFloat(ball.style.left) + ballSpeedX}px`;
+            ball.style.top = `${parseFloat(ball.style.top) + ballSpeedY}px`;
+
+            // Ball collision with walls
+            if (parseFloat(ball.style.top) <= 0 || parseFloat(ball.style.top) >= gameContainer.clientHeight - ball.clientHeight) {
+                ballSpeedY *= -1;
+            }
+
+            // Ball collision with paddles
+            if (collision(player1, ball)) {
+                const ballCenterY = parseFloat(ball.style.top) + ball.clientHeight / 2;
+                const paddleCenterY = parseFloat(player1.style.top) + player1.clientHeight / 2;
+                const deltaY = ballCenterY - paddleCenterY;
+                ballSpeedX *= -1;
+                ballSpeedY = deltaY * 0.2; // Adjust the bounce angle based on paddle position
+            } else if (collision(player2, ball)) {
+                const ballCenterY = parseFloat(ball.style.top) + ball.clientHeight / 2;
+                const paddleCenterY = parseFloat(player2.style.top) + player2.clientHeight / 2;
+                const deltaY = ballCenterY - paddleCenterY;
+                ballSpeedX *= -1;
+                ballSpeedY = deltaY * 0.2; // Adjust the bounce angle based on paddle position
+            }
+
+            // Ball out of bounds
+            if (parseFloat(ball.style.left) <= 0) {
+                // Player2 scores
+                player2Score++;
+                updateScores();
+                resetBall();
+            } else if (parseFloat(ball.style.left) >= gameContainer.clientWidth - ball.clientWidth) {
+                // Player1 scores
+                player1Score++;
+                updateScores();
+                resetBall();
+            }
+
+            requestAnimationFrame(updateGame);
+        }
+
+        function updateScores() {
+            player1ScoreDisplay.textContent = `Player 1: ${player1Score}`;
+            player2ScoreDisplay.textContent = `Player 2: ${player2Score}`;
+        }
+
+        function resetBall() {
+            ball.style.left = `${(gameContainer.clientWidth - ball.clientWidth) / 2}px`;
+            ball.style.top = `${(gameContainer.clientHeight - ball.clientHeight) / 2}px`;
+            ballSpeedX = -ballSpeedX;
+        }
+
+        function collision(paddle, ball) {
+            const paddleRect = paddle.getBoundingClientRect();
+            const ballRect = ball.getBoundingClientRect();
+
+            return (
+                ballRect.left < paddleRect.right &&
+                ballRect.right > paddleRect.left &&
+                ballRect.top < paddleRect.bottom &&
+                ballRect.bottom > paddleRect.top
+            );
+        }
+
+        // Start the game loops
+        updatePlayerPaddle();
+        updateGame();
+    </script>
+</body>
+</html>
